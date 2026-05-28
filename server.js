@@ -6,9 +6,14 @@ const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const GNEWS_API_KEY = process.env.GNEWS_API_KEY || '4b3dd37465452845a627be0322668f74';
+const GNEWS_API_KEY = process.env.GNEWS_API_KEY;
 const CACHE_FILE = path.join(__dirname, 'cache.json');
 const CACHE_TTL = (Number(process.env.CACHE_TTL_SECONDS) || 600) * 1000;
+
+if (!GNEWS_API_KEY) {
+  console.error('Missing GNEWS_API_KEY environment variable.');
+  process.exit(1);
+}
 
 let cache = loadCache();
 
