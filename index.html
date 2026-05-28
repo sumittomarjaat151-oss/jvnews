@@ -3,64 +3,56 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>jv News - Fast Reading, Quick Sharing</title>
+  <title>JV News - Fast Reading, Quick Sharing</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="app-container">
-    <!-- HEADER -->
     <header class="app-header">
       <div class="header-left">
-        <div class="logo">📰</div>
+        <div class="logo">JV</div>
         <div class="brand">
-          <h1>jv News</h1>
-          <p>Fast reading • Clean cards • Smart sharing</p>
+          <h1>JV News</h1>
+          <p>Fast reading - Clean cards - Smart sharing</p>
         </div>
       </div>
       <div class="header-middle">
         <input id="searchInput" type="text" placeholder="Search news..." class="search-box">
-        <button id="searchBtn" class="btn-search">🔍 Search</button>
+        <button id="searchBtn" class="btn-search">Search</button>
+        <button id="refreshBtn" class="btn-refresh">Refresh</button>
       </div>
-      <button id="themeToggle" class="btn-theme">Dark Mode 🌙</button>
+      <button id="themeToggle" class="btn-theme">Dark Mode</button>
     </header>
 
-    <!-- CATEGORY NAVIGATION -->
     <nav class="category-bar">
-      <button data-category="general" class="active">📰 General</button>
-      <button data-category="business">💼 Business</button>
-      <button data-category="sports">⚽ Sports</button>
-      <button data-category="technology">💻 Tech</button>
-      <button data-category="entertainment">🎬 Entertainment</button>
-      <button data-category="science">🔬 Science</button>
-      <button data-category="health">🏥 Health</button>
-      <button data-category="world">🌍 World</button>
-      <button data-category="saved">🔖 Saved</button>
-      <button data-category="recently">👀 Recently</button>
+      <button data-category="general" class="active">General</button>
+      <button data-category="business">Business</button>
+      <button data-category="sports">Sports</button>
+      <button data-category="technology">Tech</button>
+      <button data-category="entertainment">Entertainment</button>
+      <button data-category="science">Science</button>
+      <button data-category="health">Health</button>
+      <button data-category="world">World</button>
+      <button data-category="saved">Saved</button>
+      <button data-category="recently">Recently</button>
     </nav>
 
-    <!-- TRENDING STRIP -->
     <section class="trending-section">
-      <h3>🔥 Trending Now</h3>
+      <h3>Trending Now</h3>
       <div id="trendingStrip" class="trending-strip"></div>
     </section>
 
-    <!-- MAIN CONTENT -->
     <main class="main-content">
       <div id="content" class="articles-grid"></div>
     </main>
 
-    <!-- TOAST NOTIFICATION -->
+    <button id="floatingRefreshBtn" class="floating-refresh" aria-label="Refresh news">Refresh</button>
     <div id="toast" class="toast hidden"></div>
   </div>
 
   <script src="app.js"></script>
 </body>
 </html>
-
-
-
-
-
 
 
 

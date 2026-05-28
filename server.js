@@ -6,13 +6,12 @@ const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const GNEWS_API_KEY = process.env.GNEWS_API_KEY;
+const GNEWS_API_KEY = cleanApiKey(process.env.GNEWS_API_KEY);
 const CACHE_FILE = path.join(__dirname, 'cache.json');
 const CACHE_TTL = (Number(process.env.CACHE_TTL_SECONDS) || 600) * 1000;
 
 if (!GNEWS_API_KEY) {
-  console.error('Missing GNEWS_API_KEY environment variable.');
-  process.exit(1);
+  console.warn('Missing GNEWS_API_KEY environment variable. The page will load, but live news requests will fail until it is set.');
 }
 
 let cache = loadCache();
@@ -65,7 +64,12 @@ app.get('/api/trending', async (req, res) => {
 });
 
 app.get('/api/status', (req, res) => {
-  res.json({ status: 'ok', cacheTTLSeconds: CACHE_TTL / 1000, cachedKeys: Object.keys(cache).length });
+  res.json({
+    status: 'ok',
+    hasGnewsApiKey: Boolean(GNEWS_API_KEY),
+    cacheTTLSeconds: CACHE_TTL / 1000,
+    cachedKeys: Object.keys(cache).length
+  });
 });
 
 app.get('*', (req, res) => {
@@ -101,6 +105,19 @@ function buildNewsUrl(category, page) {
   return `https://gnews.io/api/v4/top-headlines?apikey=${GNEWS_API_KEY}&topic=${encodedCategory}&country=in&lang=hi&page=${page}`;
 }
 
+function cleanApiKey(value) {
+  let key = String(value || '').trim();
+
+  if (key.endsWith(';')) key = key.slice(0, -1).trim();
+  if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
+    key = key.slice(1, -1).trim();
+  }
+  if (key.startsWith('"') || key.startsWith("'")) key = key.slice(1).trim();
+  if (key.endsWith('"') || key.endsWith("'")) key = key.slice(0, -1).trim();
+
+  return key;
+}
+
 function buildSearchUrl(query, page) {
   const encodedQuery = encodeURIComponent(query);
   return `https://gnews.io/api/v4/search?apikey=${GNEWS_API_KEY}&q=${encodedQuery}&lang=hi&page=${page}`;
@@ -114,13 +131,28 @@ async function getCachedOrFetch(key, url, refresh = false) {
     return cached.data;
   }
 
-  const data = await fetchNews(url);
-  cache[key] = { timestamp: now, data };
-  saveCache();
-  return data;
+  try {
+    const data = await fetchNews(url);
+    cache[key] = { timestamp: now, data };
+    saveCache();
+    return data;
+  } catch (error) {
+    if (cached?.data) {
+      return {
+        ...cached.data,
+        warning: `${error.message}. Showing cached news instead.`
+      };
+    }
+
+    throw error;
+  }
 }
 
 async function fetchNews(url) {
+  if (!GNEWS_API_KEY) {
+    throw new Error('Missing GNEWS_API_KEY. Add it to .env and restart the server.');
+  }
+
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`GNews API failed with status ${response.status}`);
