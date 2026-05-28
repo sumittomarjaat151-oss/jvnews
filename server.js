@@ -54,8 +54,9 @@ app.get('/api/search', async (req, res) => {
 
 app.get('/api/trending', async (req, res) => {
   const cacheKey = 'trending';
+  const refresh = req.query.refresh === 'true';
   try {
-    const data = await getCachedOrFetch(cacheKey, buildNewsUrl('general', 1));
+    const data = await getCachedOrFetch(cacheKey, buildNewsUrl('general', 1), refresh);
     data.articles = (data.articles || []).slice(0, 5);
     res.json(data);
   } catch (error) {
@@ -126,3 +127,4 @@ async function fetchNews(url) {
   }
   return response.json();
 }
+
