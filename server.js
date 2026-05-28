@@ -154,9 +154,13 @@ async function fetchNews(url) {
   }
 
   const response = await fetch(url);
+  const data = await response.json().catch(() => ({}));
+
   if (!response.ok) {
-    throw new Error(`GNews API failed with status ${response.status}`);
+    const message = data?.errors?.[0] || data?.message || data?.error || `GNews API failed with status ${response.status}`;
+    throw new Error(message);
   }
-  return response.json();
+
+  return data;
 }
 
