@@ -1,4 +1,4 @@
-const API_BASE = "/api";
+const API_BASE = getApiBase();
 
 const appState = {
   page: 1,
@@ -12,6 +12,16 @@ const appState = {
   trending: [],
   recently: JSON.parse(localStorage.getItem("uc-recently") || "[]")
 };
+
+function getApiBase() {
+  const isLocalHost = ["localhost", "127.0.0.1", ""].includes(window.location.hostname);
+
+  if (window.location.protocol === "file:" || (isLocalHost && window.location.port && window.location.port !== "3000")) {
+    return "http://localhost:3000/api";
+  }
+
+  return "/api";
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   initUI();
@@ -675,4 +685,3 @@ function escapeHtml(value) {
 function escapeAttr(value) {
   return escapeHtml(value);
 }
-
