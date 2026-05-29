@@ -23,6 +23,35 @@ function getApiBase() {
   return "/api";
 }
 
+// Register Service Worker for offline support
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker
+    .register("/sw.js")
+    .then((registration) => {
+      console.log("✓ Service Worker registered successfully");
+
+      // Check for updates periodically
+      setInterval(() => {
+        registration.update();
+      }, 60000);
+
+      // Listen for updates
+      registration.addEventListener("updatefound", () => {
+        const newWorker = registration.installing;
+        newWorker.addEventListener("statechange", () => {
+          if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+            // New service worker available, notify user
+            console.log("New version available! Refresh to update.");
+            toast("📱 New version available - refresh to update");
+          }
+        });
+      });
+    })
+    .catch((error) => {
+      console.log("Service Worker registration failed:", error);
+    });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   initUI();
   applyTheme(appState.theme);
@@ -39,6 +68,66 @@ function initUI() {
   const categoryBtns = document.querySelectorAll(".category-bar button");
   const content = document.getElementById("content");
   const trendingStrip = document.getElementById("trendingStrip");
+
+  // Hamburger Menu
+  const hamburgerBtn = document.getElementById("hamburgerBtn");
+  const mobileMenu = document.getElementById("mobileMenu");
+  const closeMenuBtn = document.getElementById("closeMenuBtn");
+  const menuOverlay = document.getElementById("menuOverlay");
+  const mobileCategoryBtns = document.querySelectorAll(".mobile-categories button");
+  const mobileThemeToggle = document.getElementById("mobileThemeToggle");
+
+  function toggleMobileMenu() {
+    const isHidden = mobileMenu.classList.contains("hidden");
+    if (isHidden) {
+      mobileMenu.classList.remove("hidden");
+      menuOverlay.classList.remove("hidden");
+      hamburgerBtn.classList.add("active");
+    } else {
+      mobileMenu.classList.add("hidden");
+      menuOverlay.classList.add("hidden");
+      hamburgerBtn.classList.remove("active");
+    }
+  }
+
+  function closeMobileMenu() {
+    mobileMenu.classList.add("hidden");
+    menuOverlay.classList.add("hidden");
+    hamburgerBtn.classList.remove("active");
+  }
+
+  hamburgerBtn?.addEventListener("click", toggleMobileMenu);
+  closeMenuBtn?.addEventListener("click", closeMobileMenu);
+  menuOverlay?.addEventListener("click", closeMobileMenu);
+
+  mobileCategoryBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      closeMobileMenu();
+      const category = btn.dataset.category;
+      categoryBtns.forEach((item) => {
+        if (item.dataset.category === category) item.classList.add("active");
+        else item.classList.remove("active");
+      });
+      mobileCategoryBtns.forEach((item) => {
+        if (item.dataset.category === category) item.classList.add("active");
+        else item.classList.remove("active");
+      });
+
+      appState.page = 1;
+      appState.category = category;
+      appState.query = "";
+
+      if (category === "saved") {
+        showSaved();
+      } else if (category === "recently") {
+        showRecently();
+      } else {
+        fetchNews(category);
+      }
+    });
+  });
+
+  mobileThemeToggle?.addEventListener("click", toggleTheme);
 
   searchBtn?.addEventListener("click", handleSearch);
   searchInput?.addEventListener("keydown", (event) => {
@@ -74,6 +163,32 @@ function initUI() {
     if (trendItem) viewArticle(trendItem.dataset.url);
   });
 
+  // Footer initialization
+  const newsletterBtn = document.getElementById("newsletterBtn");
+  const newsletterEmail = document.getElementById("newsletterEmail");
+  const socialLinks = document.querySelectorAll(".social-links a");
+
+  newsletterBtn?.addEventListener("click", handleNewsletterSubscribe);
+  newsletterEmail?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") handleNewsletterSubscribe();
+  });
+
+  socialLinks.forEach((link) => {
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      toast("Social link - implement your social URLs");
+    });
+  });
+
+  // Back-to-Top Button
+  const backToTopBtn = document.getElementById("backToTopBtn");
+  backToTopBtn?.addEventListener("click", () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  });
+
   let lastScrollY = window.scrollY;
   let ticking = false;
 
@@ -82,6 +197,14 @@ function initUI() {
       window.requestAnimationFrame(() => {
         handleTopControlsVisibility(lastScrollY);
         lastScrollY = Math.max(window.scrollY, 0);
+        
+        // Show/hide back-to-top button
+        if (lastScrollY > 300) {
+          backToTopBtn?.classList.add("visible");
+        } else {
+          backToTopBtn?.classList.remove("visible");
+        }
+        
         ticking = false;
       });
       ticking = true;
@@ -101,7 +224,7 @@ async function fetchNews(category, append = false, refresh = false) {
   if (!container) return;
 
   if (!append) {
-    container.innerHTML = '<div class="loader">Loading news...</div>';
+    renderSkeletons(6);
   }
 
   try {
@@ -142,7 +265,7 @@ async function fetchSearch(query, append = false, refresh = false) {
   if (!container) return;
 
   if (!append) {
-    container.innerHTML = '<div class="loader">Searching...</div>';
+    renderSkeletons(6);
   }
 
   try {
@@ -246,6 +369,39 @@ function loadMoreArticles() {
   } else {
     fetchNews(appState.category, true);
   }
+}
+
+function renderSkeletons(count = 6) {
+  const container = document.getElementById("content");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const fragment = document.createDocumentFragment();
+
+  for (let i = 0; i < count; i++) {
+    const skeleton = document.createElement("div");
+    skeleton.className = "skeleton-card";
+    skeleton.innerHTML = `
+      <div class="skeleton-image skeleton"></div>
+      <div class="skeleton-content">
+        <div class="skeleton-title skeleton"></div>
+        <div class="skeleton-text skeleton"></div>
+        <div class="skeleton-text skeleton skeleton-text-short"></div>
+        <div class="skeleton-meta">
+          <div class="skeleton-meta-item skeleton"></div>
+          <div class="skeleton-meta-item skeleton"></div>
+        </div>
+        <div class="skeleton-actions">
+          <div class="skeleton-action-btn skeleton"></div>
+          <div class="skeleton-action-btn skeleton"></div>
+          <div class="skeleton-action-btn skeleton"></div>
+        </div>
+      </div>
+    `;
+    fragment.appendChild(skeleton);
+  }
+
+  container.appendChild(fragment);
 }
 
 function renderNews(articles, append = false) {
@@ -649,6 +805,26 @@ function getReactions(url) {
 
 function saveReactions() {
   localStorage.setItem("uc-reactions", JSON.stringify(appState.reactions));
+}
+
+function handleNewsletterSubscribe() {
+  const emailInput = document.getElementById("newsletterEmail");
+  const email = emailInput?.value.trim() || "";
+
+  if (!email || !email.includes("@")) {
+    toast("Please enter a valid email address");
+    return;
+  }
+
+  // Store in localStorage for demo
+  const subscribers = JSON.parse(localStorage.getItem("uc-subscribers") || "[]");
+  if (!subscribers.includes(email)) {
+    subscribers.push(email);
+    localStorage.setItem("uc-subscribers", JSON.stringify(subscribers));
+  }
+
+  emailInput.value = "";
+  toast("✓ Subscribed! Check your email for confirmation");
 }
 
 function toast(message) {
