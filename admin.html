@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JV News Admin Portal</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="theme-color" content="#ff6b35">
+</head>
+<body class="admin-page">
+  <main class="admin-shell">
+    <section class="admin-panel">
+      <div class="admin-header">
+        <div>
+          <span class="admin-kicker">Publisher</span>
+          <h1>JV News Admin Portal</h1>
+          <p>Publish local stories to the public feed alongside live API headlines.</p>
+        </div>
+        <a href="index.html" class="admin-home-link">Public Site</a>
+      </div>
+
+      <form id="adminForm" class="admin-form">
+        <label>
+          Admin Password
+          <input id="adminPassword" type="password" autocomplete="current-password" placeholder="Enter admin password" required>
+        </label>
+
+        <div class="admin-form-grid">
+          <label>
+            Title
+            <input id="articleTitle" type="text" minlength="5" placeholder="Story headline" required>
+          </label>
+          <label>
+            Category
+            <select id="articleCategory">
+              <option value="general">General</option>
+              <option value="business">Business</option>
+              <option value="sports">Sports</option>
+              <option value="technology">Technology</option>
+              <option value="entertainment">Entertainment</option>
+              <option value="science">Science</option>
+              <option value="health">Health</option>
+              <option value="world">World</option>
+            </select>
+          </label>
+        </div>
+
+        <label>
+          Image URL
+          <input id="articleImage" type="url" placeholder="https://example.com/photo.jpg">
+        </label>
+
+        <label>
+          Summary
+          <textarea id="articleDescription" minlength="10" rows="3" placeholder="Short public summary" required></textarea>
+        </label>
+
+        <label>
+          Full Content
+          <textarea id="articleContent" minlength="20" rows="7" placeholder="Complete story content" required></textarea>
+        </label>
+
+        <button type="submit" class="admin-submit">Publish Story</button>
+      </form>
+
+      <div id="adminMessage" class="admin-message" role="status"></div>
+    </section>
+
+    <section class="admin-list-panel">
+      <div class="admin-list-header">
+        <h2>Published Stories</h2>
+        <button id="reloadAdminArticles" type="button">Reload</button>
+      </div>
+      <div id="adminArticles" class="admin-articles"></div>
+    </section>
+  </main>
+
+  <script>
+    const API_BASE = window.location.protocol === "file:" ? "http://localhost:3015/api" : "/api";
+    const form = document.getElementById("adminForm");
+    const message = document.getElementById("adminMessage");
+    const list = document.getElementById("adminArticles");
+    const reloadButton = document.getElementById("reloadAdminArticles");
+    const passwordInput = document.getElementById("adminPassword");
+
+    document.addEventListener("DOMContentLoaded", loadArticles);
+    reloadButton.addEventListener("click", loadArticles);
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      setMessage("Publishing...", "");
+
+      const payload = {
+        password: passwordInput.value,
+        title: document.getElementById("articleTitle").value,
+        category: document.getElementById("articleCategory").value,
+        image: document.getElementById("articleImage").value,
+        description: document.getElementById("articleDescription").value,
+        content: document.getElementById("articleContent").value
+      };
+
+      try {
+        const response = await fetch(`${API_BASE}/admin/articles`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Publish failed");
+
+        form.reset();
+        passwordInput.value = payload.password;
+        setMessage("Story published. It is now visible on the public site.", "success");
+        loadArticles();
+      } catch (error) {
+        setMessage(error.message, "error");
+      }
+    });
+
+    list.addEventListener("click", async (event) => {
+      const button = event.target.closest("[data-delete-id]");
+      if (!button) return;
+
+      const password = passwordInput.value;
+      if (!password) {
+        setMessage("Enter admin password before deleting.", "error");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/admin/articles/${encodeURIComponent(button.dataset.deleteId)}`, {
+          method: "DELETE",
+          headers: { "x-admin-password": password }
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "Delete failed");
+        setMessage("Story deleted.", "success");
+        loadArticles();
+      } catch (error) {
+        setMessage(error.message, "error");
+      }
+    });
+
+    async function loadArticles() {
+      list.innerHTML = '<div class="admin-empty">Loading stories...</div>';
+      try {
+        const response = await fetch(`${API_BASE}/admin/articles`);
+        const data = await response.json();
+        const articles = data.articles || [];
+        if (!articles.length) {
+          list.innerHTML = '<div class="admin-empty">No admin stories published yet.</div>';
+          return;
+        }
+
+        list.innerHTML = articles.map((article) => `
+          <article class="admin-story">
+            ${article.image ? `<img src="${escapeHtml(article.image)}" alt="">` : ""}
+            <div>
+              <span>${escapeHtml(article.category || "general")}</span>
+              <h3>${escapeHtml(article.title || "Untitled")}</h3>
+              <p>${escapeHtml(article.description || "")}</p>
+              <small>${new Date(article.publishedAt).toLocaleString()}</small>
+            </div>
+            <button type="button" data-delete-id="${escapeHtml(article.id)}">Delete</button>
+          </article>
+        `).join("");
+      } catch (error) {
+        list.innerHTML = `<div class="admin-empty">Could not load stories: ${escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    function setMessage(text, type) {
+      message.textContent = text;
+      message.className = `admin-message ${type || ""}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>

@@ -14,10 +14,8 @@ const appState = {
 };
 
 function getApiBase() {
-  const isLocalHost = ["localhost", "127.0.0.1", ""].includes(window.location.hostname);
-
-  if (window.location.protocol === "file:" || (isLocalHost && window.location.port && window.location.port !== "3000")) {
-    return "http://localhost:3000/api";
+  if (window.location.protocol === "file:") {
+    return "http://localhost:3015/api";
   }
 
   return "/api";
@@ -63,6 +61,7 @@ function initUI() {
   const searchBtn = document.getElementById("searchBtn");
   const searchInput = document.getElementById("searchInput");
   const themeToggle = document.getElementById("themeToggle");
+  const legalBtn = document.getElementById("legalBtn");
   const refreshBtn = document.getElementById("refreshBtn");
   const floatingRefreshBtn = document.getElementById("floatingRefreshBtn");
   const categoryBtns = document.querySelectorAll(".category-bar button");
@@ -76,6 +75,7 @@ function initUI() {
   const menuOverlay = document.getElementById("menuOverlay");
   const mobileCategoryBtns = document.querySelectorAll(".mobile-categories button");
   const mobileThemeToggle = document.getElementById("mobileThemeToggle");
+  const mobileLegalBtn = document.getElementById("mobileLegalBtn");
 
   function toggleMobileMenu() {
     const isHidden = mobileMenu.classList.contains("hidden");
@@ -128,12 +128,17 @@ function initUI() {
   });
 
   mobileThemeToggle?.addEventListener("click", toggleTheme);
+  mobileLegalBtn?.addEventListener("click", () => {
+    closeMobileMenu();
+    showLegalModal();
+  });
 
   searchBtn?.addEventListener("click", handleSearch);
   searchInput?.addEventListener("keydown", (event) => {
     if (event.key === "Enter") handleSearch();
   });
   themeToggle?.addEventListener("click", toggleTheme);
+  legalBtn?.addEventListener("click", showLegalModal);
   refreshBtn?.addEventListener("click", refreshCurrentContent);
   floatingRefreshBtn?.addEventListener("click", refreshCurrentContent);
 
@@ -167,6 +172,9 @@ function initUI() {
   const newsletterBtn = document.getElementById("newsletterBtn");
   const newsletterEmail = document.getElementById("newsletterEmail");
   const socialLinks = document.querySelectorAll(".social-links a");
+  const footerCategoryLinks = document.querySelectorAll("[data-footer-category]");
+  const footerLegalLink = document.getElementById("footerLegalLink");
+  const footerRefreshLink = document.getElementById("footerRefreshLink");
 
   newsletterBtn?.addEventListener("click", handleNewsletterSubscribe);
   newsletterEmail?.addEventListener("keydown", (event) => {
@@ -178,6 +186,29 @@ function initUI() {
       e.preventDefault();
       toast("Social link - implement your social URLs");
     });
+  });
+
+  footerCategoryLinks.forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      const category = link.dataset.footerCategory;
+      appState.page = 1;
+      appState.category = category;
+      appState.query = "";
+      setActiveCategory(category);
+      fetchNews(category);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
+
+  footerLegalLink?.addEventListener("click", (event) => {
+    event.preventDefault();
+    showLegalModal();
+  });
+
+  footerRefreshLink?.addEventListener("click", (event) => {
+    event.preventDefault();
+    refreshCurrentContent();
   });
 
   // Back-to-Top Button
@@ -250,7 +281,7 @@ async function fetchNews(category, append = false, refresh = false) {
     renderNews(append ? articles : appState.articles, append);
   } catch (error) {
     if (!append) {
-      container.innerHTML = `<div class="error">Could not load news: ${escapeHtml(error.message)}</div>`;
+      container.innerHTML = `<div class="error">Could not load news: ${escapeHtml(getReadableError(error))}</div>`;
     }
   } finally {
     appState.loading = false;
@@ -291,7 +322,7 @@ async function fetchSearch(query, append = false, refresh = false) {
     renderNews(append ? articles : appState.articles, append);
   } catch (error) {
     if (!append) {
-      container.innerHTML = `<div class="error">Search failed: ${escapeHtml(error.message)}</div>`;
+      container.innerHTML = `<div class="error">Search failed: ${escapeHtml(getReadableError(error))}</div>`;
     }
   } finally {
     appState.loading = false;
@@ -426,6 +457,7 @@ function renderNews(articles, append = false) {
         <p>${escapeHtml((article.description || "No description").slice(0, 140))}</p>
         <div class="meta">
           <span>${escapeHtml(article.source?.name || "Source")}</span>
+          ${article.adminPost ? '<span class="admin-badge">JV Published</span>' : ""}
           ${article.publishedAt ? `<span>${formatDate(article.publishedAt)}</span>` : ""}
         </div>
         <div class="stats">
@@ -705,6 +737,46 @@ function copyToClipboard(text) {
   navigator.clipboard.writeText(text).then(() => toast("Link copied")).catch(() => toast("Copy failed"));
 }
 
+function showLegalModal() {
+  const existing = document.querySelector(".legal-modal");
+  if (existing) existing.remove();
+
+  const modal = document.createElement("div");
+  modal.className = "modal legal-modal";
+  modal.innerHTML = `
+    <div class="modal-content legal-content">
+      <button class="close-btn" data-legal-action="close">x</button>
+      <h2>Legal</h2>
+      <div class="legal-grid">
+        <section>
+          <h3>Privacy</h3>
+          <p>Saved articles, reactions, comments, theme, and newsletter email are stored locally in your browser for this demo app.</p>
+        </section>
+        <section>
+          <h3>Terms</h3>
+          <p>JV News displays headlines from the configured news provider. Full article ownership remains with the original publishers.</p>
+        </section>
+        <section>
+          <h3>Cookies</h3>
+          <p>This app uses local browser storage for preferences. Add a full cookie policy before launching publicly.</p>
+        </section>
+        <section>
+          <h3>Contact</h3>
+          <p>Replace this with your support email, business address, and social links when the project goes live.</p>
+        </section>
+      </div>
+    </div>
+  `;
+
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal || event.target.closest("[data-legal-action='close']")) {
+      modal.remove();
+    }
+  });
+
+  document.body.appendChild(modal);
+}
+
 function toggleTheme() {
   appState.theme = appState.theme === "light" ? "dark" : "light";
   localStorage.setItem("uc-theme", appState.theme);
@@ -714,7 +786,9 @@ function toggleTheme() {
 function applyTheme(theme) {
   document.body.classList.toggle("dark-theme", theme === "dark");
   const btn = document.getElementById("themeToggle");
+  const mobileBtn = document.getElementById("mobileThemeToggle");
   if (btn) btn.textContent = theme === "dark" ? "Light Mode" : "Dark Mode";
+  if (mobileBtn) mobileBtn.textContent = theme === "dark" ? "Light Mode" : "Dark Mode";
 }
 
 function handleTopControlsVisibility(lastScrollY) {
@@ -847,6 +921,14 @@ async function getApiError(response) {
   } catch (error) {
     return `API Error: ${response.status}`;
   }
+}
+
+function getReadableError(error) {
+  const message = error?.message || "";
+  if (message.toLowerCase().includes("failed to fetch")) {
+    return "Backend is not running. Start it with npm start, then open http://localhost:3015.";
+  }
+  return message || "Something went wrong while loading news.";
 }
 
 function escapeHtml(value) {
