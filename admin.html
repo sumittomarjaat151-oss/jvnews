@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JV News - Fast Reading, Quick Sharing</title>
+  <meta name="title" content="JV News - Fast Reading, Quick Sharing">
+  <meta name="description" content="Stay updated with the latest news across multiple categories with fast cards, saved articles, and smart sharing.">
+  <meta name="keywords" content="news, breaking news, latest news, technology news, business news, sports news">
+  <meta name="author" content="JV News">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="JV News - Fast Reading, Quick Sharing">
+  <meta property="og:description" content="Latest news across categories with fast cards and smart sharing.">
+  <meta property="og:site_name" content="JV News">
+  <meta property="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://jvnews.com/">
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23ff6b35' width='192' height='192' rx='32'/><text x='50%' y='50%' font-size='92' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>JV</text></svg>">
+  <meta name="theme-color" content="#ff6b35">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="JV News">
+  <meta name="mobile-web-app-capable" content="yes">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "NewsMediaOrganization",
+    "name": "JV News",
+    "description": "Latest news and updates across multiple categories",
+    "url": "https://jvnews.com"
+  }
+  </script>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div class="header-left">
+        <button id="hamburgerBtn" class="hamburger-btn" aria-label="Toggle menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <div class="logo">JV</div>
+        <div class="brand">
+          <h1>JV News</h1>
+          <p>Fast reading - Clean cards - Smart sharing</p>
+        </div>
+      </div>
+      <div class="header-middle">
+        <input id="searchInput" type="text" placeholder="Search news..." class="search-box">
+        <button id="searchBtn" class="btn-search">Search</button>
+        <button id="refreshBtn" class="btn-refresh">Refresh</button>
+      </div>
+      <div class="header-actions">
+        <a href="admin.html" class="btn-admin">Admin</a>
+        <button id="themeToggle" class="btn-theme">Dark Mode</button>
+        <button id="legalBtn" class="btn-legal">Legal</button>
+      </div>
+    </header>
+
+    <div id="mobileMenu" class="mobile-menu hidden">
+      <div class="mobile-menu-header">
+        <h2>Menu</h2>
+        <button id="closeMenuBtn" class="close-menu-btn" aria-label="Close menu">x</button>
+      </div>
+      <nav class="mobile-categories">
+        <button data-category="general" class="active">General</button>
+        <button data-category="business">Business</button>
+        <button data-category="sports">Sports</button>
+        <button data-category="technology">Tech</button>
+        <button data-category="entertainment">Entertainment</button>
+        <button data-category="science">Science</button>
+        <button data-category="health">Health</button>
+        <button data-category="world">World</button>
+        <button data-category="saved">Saved</button>
+        <button data-category="recently">Recently Viewed</button>
+      </nav>
+      <div class="mobile-menu-footer">
+        <a href="admin.html" class="btn-mobile-admin">Admin Portal</a>
+        <button id="mobileThemeToggle" class="btn-mobile-theme">Dark Mode</button>
+        <button id="mobileLegalBtn" class="btn-mobile-legal">Legal</button>
+      </div>
+    </div>
+    <div id="menuOverlay" class="menu-overlay hidden"></div>
+
+    <nav class="category-bar">
+      <button data-category="general" class="active">General</button>
+      <button data-category="business">Business</button>
+      <button data-category="sports">Sports</button>
+      <button data-category="technology">Tech</button>
+      <button data-category="entertainment">Entertainment</button>
+      <button data-category="science">Science</button>
+      <button data-category="health">Health</button>
+      <button data-category="world">World</button>
+      <button data-category="saved">Saved</button>
+      <button data-category="recently">Recently</button>
+    </nav>
+
+    <section class="trending-section">
+      <h3>Trending Now</h3>
+      <div id="trendingStrip" class="trending-strip"></div>
+    </section>
+
+    <main class="main-content">
+      <div id="content" class="articles-grid"></div>
+    </main>
+
+    <button id="floatingRefreshBtn" class="floating-refresh" aria-label="Refresh news">Refresh</button>
+    <button id="backToTopBtn" class="back-to-top" aria-label="Back to top" title="Scroll to top">↑</button>
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <footer class="app-footer">
+    <div class="footer-container">
+      <div class="footer-section">
+        <h4>JV News</h4>
+        <p>Fast local publishing, live headlines, saved stories, reactions, comments, and a clean reading experience.</p>
+        <div class="social-links">
+          <a href="#" aria-label="Facebook">f</a>
+          <a href="#" aria-label="Instagram">ig</a>
+          <a href="#" aria-label="YouTube">yt</a>
+        </div>
+      </div>
+      <div class="footer-section">
+        <h4>Sections</h4>
+        <ul>
+          <li><a href="#" data-footer-category="general">General</a></li>
+          <li><a href="#" data-footer-category="business">Business</a></li>
+          <li><a href="#" data-footer-category="sports">Sports</a></li>
+          <li><a href="#" data-footer-category="technology">Technology</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h4>Publisher</h4>
+        <ul>
+          <li><a href="admin.html">Admin Portal</a></li>
+          <li><a href="#" id="footerLegalLink">Legal & Privacy</a></li>
+          <li><a href="#" id="footerRefreshLink">Refresh Latest</a></li>
+        </ul>
+      </div>
+      <div class="footer-section newsletter">
+        <h4>Newsletter</h4>
+        <p>Get a quick digest of fresh updates.</p>
+        <div class="newsletter-form">
+          <input id="newsletterEmail" type="email" placeholder="Email address">
+          <button id="newsletterBtn" class="btn-newsletter">Join</button>
+        </div>
+        <p class="newsletter-note">Stored locally in your browser for this demo.</p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 JV News. Built for fast publishing and clean reading.</span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
