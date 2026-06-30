@@ -1,19 +1,18 @@
-const CACHE_NAME = "jv-news-v1";
+const CACHE_NAME = "jv-news-v2";
 const OFFLINE_URL = "/";
 const URLS_TO_CACHE = [
   "/",
   "/index.html",
+  "/admin.html",
   "/style.css",
   "/app.js",
   "/manifest.json"
 ];
 
-// Install event - cache resources
 self.addEventListener("install", (event) => {
   console.log("Service Worker installing...");
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log("Caching app shell");
       return cache.addAll(URLS_TO_CACHE).catch((err) => {
         console.log("Cache add all error:", err);
       });
@@ -22,7 +21,6 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// Activate event - cleanup old caches
 self.addEventListener("activate", (event) => {
   console.log("Service Worker activating...");
   event.waitUntil(
@@ -40,62 +38,54 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests
   if (request.method !== "GET") {
     return;
   }
 
-  // Skip external domains and API calls - always use network
   if (url.origin !== self.location.origin || url.pathname.includes("/api/")) {
     return;
   }
 
-  event.respondWith(
-    caches.match(request).then((response) => {
-      if (response) {
-        // Found in cache
-        return response;
-      }
-
-      return fetch(request)
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request)
         .then((response) => {
-          // Don't cache non-successful responses
-          if (!response || response.status !== 200 || response.type === "error") {
-            return response;
-          }
-
-          // Clone the response
-          const responseToCache = response.clone();
-
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseToCache);
-          });
-
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(OFFLINE_URL, copy));
           return response;
         })
-        .catch(() => {
-          // Network request failed, return offline page or cached response
-          if (request.mode === "navigate") {
-            return caches.match(OFFLINE_URL);
+        .catch(() => caches.match(OFFLINE_URL))
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(request).then((cachedResponse) => {
+      const networkFetch = fetch(request)
+        .then((networkResponse) => {
+          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type === "error") {
+            return networkResponse;
           }
-          return new Response("Offline - resource not available", {
-            status: 503,
-            statusText: "Service Unavailable",
-            headers: new Headers({
-              "Content-Type": "text/plain"
-            })
-          });
-        });
+
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseToCache));
+          return networkResponse;
+        })
+        .catch(() => cachedResponse || new Response("Offline - resource not available", {
+          status: 503,
+          statusText: "Service Unavailable",
+          headers: new Headers({ "Content-Type": "text/plain" })
+        }));
+
+      return cachedResponse || networkFetch;
     })
   );
 });
 
-// Handle messages from clients
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") {
     self.skipWaiting();
